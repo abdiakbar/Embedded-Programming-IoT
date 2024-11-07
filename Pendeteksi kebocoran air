@@ -1,0 +1,64 @@
+#include <DHT.h>	     // Impor library DHT untuk penggunaan sensor DHT
+
+
+#define DHTPIN 2        // Pin data untuk sensor DHT11
+#define DHTTYPE DHT11   // Tipe sensor DHT11
+#define TRIG_PIN 3      // Pin Trig untuk sensor HC-SR04
+#define ECHO_PIN 4      // Pin Echo untuk sensor HC-SR04
+#define BUZZER_PIN 5    // Pin untuk Buzzer
+#define LED_PIN 6       // Pin untuk LED
+
+
+DHT dht(DHTPIN, DHTTYPE); // Akses fungsi dari library DHT sesuai pin
+
+
+void setup() {
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
+  
+  Serial.begin(9600); // Memulai komunikasi serial untuk mengirim data
+  dht.begin();		// Menginisiasi sensor DHT agar siap digunakan
+}
+
+
+void loop() {
+  // Mengukur Kelembaban
+  float humidity = dht.readHumidity(); // membaca kelembaban dalam %
+  
+  // Mengukur Jarak menggunakan HC-SR04
+  long duration, distance;
+  
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  
+  duration = pulseIn(ECHO_PIN, HIGH);
+  distance = (duration / 2) / 29.1;  // Konversi menjadi jarak (cm), dibagi 2 karena sinyal harus pergi dan Kembali dari trigger dan echo
+
+
+  // Tampilkan nilai kelembaban dan jarak di Serial Monitor
+  Serial.print("Kelembaban: ");
+  Serial.print(humidity);
+  Serial.println(" %");
+  
+  Serial.print("Jarak: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+  
+  // Logika untuk mendeteksi kebocoran
+  if (humidity > 70 && distance < 10) { // Misal, kelembaban >70% dan jarak <10cm
+    digitalWrite(BUZZER_PIN, HIGH);
+    digitalWrite(LED_PIN, HIGH);
+    Serial.println("Kebocoran terdeteksi!");
+  } else {
+    digitalWrite(BUZZER_PIN, LOW);
+    digitalWrite(LED_PIN, LOW);
+    Serial.println("Tidak ada kebocoran.");
+  }
+  
+  delay(1000);  // Tunggu 1 detik sebelum pengukuran berikutnya
+}
