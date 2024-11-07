@@ -1,0 +1,83 @@
+#define TRIG_PIN 9      // Pin Trig untuk sensor HC-SR04
+#define ECHO_PIN 10     // Pin Echo untuk sensor HC-SR04
+#define BUZZER_PIN 8    // Pin untuk Buzzer
+#define LED_PIN 6       // Pin untuk LED
+
+
+long duration;          // Tipe data long untuk duration
+int distance;           // Tipe data integer untuk distance
+int buzzerDelay = 5000; // Waktu tunda buzzer (5 detik)
+bool drawerOpen = false;// Tipe data boolean untuk drawerOpen false atau didefinisikan awalnya tertutup
+unsigned long openTime; // Tipe data long untuk openTime atau waktu brankas terbuka diberi unsigned agar penghitungan mulai dari 0
+
+
+void setup() {
+pinMode(TRIG_PIN, OUTPUT);  // Trigger ultrasonic dideklarasikan sebagai output
+pinMode(ECHO_PIN, INPUT);   // Echo ultrasonic dideklarasikan sebagai input
+pinMode(BUZZER_PIN, OUTPUT);// Buzzer dideklarasikan sebagai output
+pinMode(LED_PIN, OUTPUT);   // LED dideklarasikan sebagai output
+Serial.begin(9600);         // Komunikasi untuk ke serial monitor dengan baud rate 9600
+}
+
+
+void loop() {
+// Mengirim sinyal ultrasonic
+digitalWrite(TRIG_PIN, LOW);  // Awalnya trigger ultrasonic dalam keadaan mati
+delayMicroseconds(2);         // 2 microsecond kemudian..
+digitalWrite(TRIG_PIN, HIGH); // Trigger ultrasonic mulai menyala mengeluarkan pulsa
+delayMicroseconds(10);        // Selama 10 microsecond
+digitalWrite(TRIG_PIN, LOW);  // Setelah itu trigger ultrasonic mati
+
+
+// Mengukur durasi pantulan sinyal
+duration = pulseIn(ECHO_PIN, HIGH); // Setelah itu echo ultrasonic menyala untuk mengambil pantulan pulsa untuk mengukur durasi pantulan sinyal
+
+
+// Menghitung jarak
+distance = duration * 0.034 / 2;    // 0.034: Kecepatan suara dalam cm/mS, dibagi 2 karena gelombang yang diterima bolak balik
+
+
+// Tampilkan nilai jarak
+Serial.print("Jarak: ");  // Untuk menampilkan tulisan jarak, karena diberi ""
+Serial.print(distance);   // Untuk menampilkan nilai dari distance
+Serial.println(" cm");    // untuk menampilkan tulisan cm
+
+
+// Jika jarak lebih dari nilai tertentu (misalnya 7 cm), brankas dianggap terbuka
+if (distance > 7) {       // Jika jarak lebih dari 7 cm
+if (!drawerOpen) {      // Jika drawerOpen tidak seperti deklarasi awalnya
+drawerOpen = true;    // Maka drawerOpen didefinisikan sebagai true
+openTime = millis();  // openTime menampilkan penghitungan waktu (millis()), karena deklarasi openTime diatas sebagai unsigned long, maka penghitungan dimulai dari 0
+}
+// Tampilkan nilai open time
+Serial.print("Laci Terbuka Selama: ");      // Menampilkan tulisan laci terbuka selama
+Serial.print((millis() - openTime) / 1000); // Menampilkan nilai dari penghitungan waktu sejak openTime atau brankas pertama kali terbuka, dibagi 1000 agar satuannya dalam detik, bukan milidetik
+Serial.println(" detik");                   // Menampilkan tulisan detik
+} else {
+drawerOpen = false;                         // Jika fungsi if tidak terpenuhi, maka drawerOpen dianggap tertutup
+noTone(BUZZER_PIN);                         // Buzzer juga tidak menyala
+}
+
+
+// Jika laci terbuka selama lebih dari 30 detik, buzzer berbunyi
+if (drawerOpen && millis() - openTime >= buzzerDelay) { // Jika brankas terbuka dan menampilkan nilai dari penghitungan waktu lebih dari sama dengan buzzerDelay
+warAlarmSound();                                      // Memanggil fungsi bunyi alarm
+}
+
+
+delay(100);                                             // Jeda untuk stabilisasi sensor
+}
+
+
+void warAlarmSound() {                                    // Fungsi untuk mendefinisikan bunyi alarm
+for (int freq = 1000; freq <= 2000; freq += 10) {       // Fungsi for untuk pengulangan dengan menggunakan frekuensi dari 1000 ke 2000 Hz dengan kenaikan kelipatan 10
+tone(BUZZER_PIN, freq);                               // Buzzer berbunyi sesuai frekuensi yang diatur
+digitalWrite(LED_PIN, HIGH);                          // LED menyala
+delay(5);                                             // Jeda alarm selama 5 ms
+}
+for (int freq = 2000; freq >= 1000; freq -= 10) {       // Fungsi for untuk pengulangan dengan menggunakan frekuensi dari 2000 ke 1000 Hz dengan penurunan kelipatan 10
+tone(BUZZER_PIN, freq);                               // Buzzer berbunyi sesuai frekuensi yang diatur
+digitalWrite(LED_PIN, LOW);                           // LED mati
+delay(5);                                             // Jeda alarm selama 5 ms
+}
+}
